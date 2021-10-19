@@ -12,6 +12,7 @@ package com.hbrs;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -67,23 +68,14 @@ public class MainActivity extends AppCompatActivity
         joystick.setOnMoveListener(new JoystickView.OnMoveListener() {
             @Override
             public void onMove(int angle, int strength) {
-                double anglerad = angle;
-                double v_a,v_b;
-                anglerad = ((anglerad + 180) % 360) - 180;
-                Log.i("movement",String.format("%f",anglerad));
-                v_a = strength * (45 - anglerad % 90) / 45;
-                v_b = Math.min(100.0, Math.min(2 * strength + v_a, 2 * strength - v_a));
-                if(anglerad < -90){
-                    mbot.setDrive(-1 * (int) (v_a),-1 * (int) (v_a));
-                }else if (anglerad < 0){
-                    mbot.setDrive(-1 * (int) (v_a),(int) (v_b));
-                }else if (anglerad < 90){
-                    mbot.setDrive((int) (v_b), (int) (v_a));
-                }else{
-                    mbot.setDrive((int) (v_a), -1 * (int) (v_b));
-                }
+                double leftpower,rightpower,multiplier = 3;
+                rightpower = Math.cos(Math.toRadians(angle + 45)) * strength;
+                leftpower = Math.cos(Math.toRadians(angle - 45)) * strength;
+                Log.i("movement",String.format("left power %f right power %f",leftpower,rightpower));
+                mbot.setDrive((int) (multiplier * leftpower),(int) (multiplier * rightpower));
             }
         });
+
 
     }
 
