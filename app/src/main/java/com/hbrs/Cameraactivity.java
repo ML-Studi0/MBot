@@ -11,11 +11,15 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.hbrs.R;
+
+import java.util.ArrayList;
+import java.util.List;
 
 //*************************************************************************************************
 public class Cameraactivity extends AppCompatActivity
@@ -27,7 +31,7 @@ public class Cameraactivity extends AppCompatActivity
     Scalar lowerupperredhue = new Scalar(170, 100, 100);
     Scalar upperupperredhue = new Scalar(180, 255, 255);
 
-    Mat hsv,mask1,mask2,combinedmask;
+    Mat hsv,greyscale,mask1,mask2,combinedmask,circles;
 
     //-----------------------------------------------------------------
     @Override
@@ -62,9 +66,25 @@ public class Cameraactivity extends AppCompatActivity
         Core.bitwise_and( mask1, mask2,combinedmask);
 
         hsv.setTo(new Scalar(0,0,0), combinedmask);
-
         Imgproc.cvtColor(hsv, mImg, Imgproc.COLOR_HSV2RGB, 4);
-        return  mImg;
+
+        List<Mat> hsv_channel = new ArrayList<Mat>();
+        Core.split(hsv,hsv_channel);
+        greyscale = hsv_channel.get(2);
+
+        Imgproc.blur(greyscale, greyscale, new Size(7, 7), new Point(2, 2));
+        Imgproc.HoughCircles(greyscale, circles, Imgproc.CV_HOUGH_GRADIENT, 2, 100);
+
+        if (circles.cols() > 0) {
+                double circleVec[] = circles.get(0, 0);
+
+                Point center = new Point((int) circleVec[0], (int) circleVec[1]);
+                int radius = (int) circleVec[2];
+
+                Imgproc.circle(mImg, center, 3, new Scalar(255, 255, 255), 5);
+                Imgproc.circle(mImg, center, radius, new Scalar(255, 255, 255), 2);
+        }
+        return mImg;
     }
 
     //-----------------------------------------------------------------
@@ -75,6 +95,8 @@ public class Cameraactivity extends AppCompatActivity
         mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         mask2 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         combinedmask = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        greyscale = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        circles = new Mat();;
     }
 
     //-----------------------------------------------------------------
@@ -85,5 +107,7 @@ public class Cameraactivity extends AppCompatActivity
         mask1.release();
         mask2.release();
         combinedmask.release();
+        greyscale.release();
+        circles.release();
     }
 }
