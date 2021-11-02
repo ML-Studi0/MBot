@@ -21,6 +21,14 @@ import com.hbrs.R;
 public class Cameraactivity extends AppCompatActivity
         implements CameraBridgeViewBase.CvCameraViewListener2
 {
+    Scalar lowerlowerredhue = new Scalar(0, 100, 100);
+    Scalar upperlowerredhue = new Scalar(10, 255, 255);
+
+    Scalar lowerupperredhue = new Scalar(170, 100, 100);
+    Scalar upperupperredhue = new Scalar(180, 255, 255);
+
+    Mat hsv,mask1,mask2,combinedmask;
+
     //-----------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -43,19 +51,8 @@ public class Cameraactivity extends AppCompatActivity
     {
         // Get frame
         Mat mImg = inputFrame.rgba();
-        Mat hsv = new Mat((int) mImg.size().height, (int) mImg.size().width, CvType.CV_8UC3);
-
         Imgproc.cvtColor(mImg, hsv, Imgproc.COLOR_RGB2HSV, 3);
 
-        Mat mask1 = new Mat(hsv.rows(), hsv.cols(), CvType.CV_8U, new Scalar(0));
-        Mat mask2 = new Mat(hsv.rows(), hsv.cols(), CvType.CV_8U, new Scalar(0));
-        Mat combinedmask = new Mat(hsv.rows(), hsv.cols(), CvType.CV_8U, new Scalar(0));
-
-        Scalar lowerlowerredhue = new Scalar(0, 100, 100);
-        Scalar upperlowerredhue = new Scalar(10, 255, 255);
-
-        Scalar lowerupperredhue = new Scalar(170, 100, 100);
-        Scalar upperupperredhue = new Scalar(180, 255, 255);
 
         Core.inRange(hsv, lowerlowerredhue, upperlowerredhue, mask1);
         Core.inRange(hsv, lowerupperredhue, upperupperredhue, mask2);
@@ -63,6 +60,7 @@ public class Cameraactivity extends AppCompatActivity
         Core.bitwise_not( mask1, mask1);
         Core.bitwise_not( mask2, mask2);
         Core.bitwise_and( mask1, mask2,combinedmask);
+
         hsv.setTo(new Scalar(0,0,0), combinedmask);
 
         Imgproc.cvtColor(hsv, mImg, Imgproc.COLOR_HSV2RGB, 4);
@@ -73,11 +71,19 @@ public class Cameraactivity extends AppCompatActivity
     @Override
     public void onCameraViewStarted(int width, int height)
     {
+        hsv = new Mat(height, width, CvType.CV_8UC3);
+        mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        mask2 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        combinedmask = new Mat(height, width, CvType.CV_8U, new Scalar(0));
     }
 
     //-----------------------------------------------------------------
     @Override
     public void onCameraViewStopped()
     {
+        hsv.release();
+        mask1.release();
+        mask2.release();
+        combinedmask.release();
     }
 }
