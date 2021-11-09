@@ -15,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -23,15 +24,34 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.JavaCameraView;
+import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+
 import java.util.*;
 
 //*************************************************************************************************
-public class MainActivity extends AppCompatActivity
+public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2
 {
     private static final String TAG = "MBot";
 
     private MBot mbot;
 
+    Scalar lowerlowerredhue = new Scalar(0, 100, 100);
+    Scalar upperlowerredhue = new Scalar(10, 255, 255);
+
+    Scalar lowerupperredhue = new Scalar(170, 100, 100);
+    Scalar upperupperredhue = new Scalar(180, 255, 255);
+
+    Mat hsv,greyscale,mask1,mask2,combinedmask,circles;
 
     private final static int REQUEST_BLUETOOTH_ENABLE = 1;
     private final static int REQUEST_BLUETOOTH_GET_ADDR = 2;
@@ -63,6 +83,13 @@ public class MainActivity extends AppCompatActivity
 
         mbot = new MBot();
 
+        // Initialize OpenCV
+        JavaCameraView mCamView = (JavaCameraView)findViewById( R.id.camera_view);
+        mCamView.setCameraIndex(mCamView.CAMERA_ID_ANY);
+        mCamView.setCvCameraViewListener(this);
+        mCamView.enableView();
+
+        OpenCVLoader.initDebug();
 
     }
 
@@ -72,13 +99,6 @@ public class MainActivity extends AppCompatActivity
         Log.i(TAG, "Connect...");
 
         BT_DeviceListActivity.connect( this, REQUEST_BLUETOOTH_ENABLE, REQUEST_BLUETOOTH_GET_ADDR );
-    }
-
-
-    public void opencam(View view)
-    {
-        Intent myIntent = new Intent(MainActivity.this, Cameraactivity.class);
-        MainActivity.this.startActivity(myIntent);
     }
 
     //*********************************************************************************************
@@ -94,15 +114,71 @@ public class MainActivity extends AppCompatActivity
        ledId = (ledId%12)+1;
     }
 
-    public static Camera getCameraInstance(){
-        Camera c = null;
-        try {
-            c = Camera.open(); // attempt to get a Camera instance
-        }
-        catch (Exception e){
-            // Camera is not available (in use or does not exist)
-        }
-        return c; // returns null if camera is unavailable
+    @Override
+    public void onCameraViewStarted(int width, int height) {
+        hsv = new Mat(height, width, CvType.CV_8UC3);
+        mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        mask2 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        combinedmask = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        greyscale = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        circles = new Mat();
     }
+
+    @Override
+    public void onCameraViewStopped() {
+        hsv.release();
+        mask1.release();
+        mask2.release();
+        combinedmask.release();
+        greyscale.release();
+        circles.release();
+    }
+
+    @Override
+    public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+        // Get frame
+        Mat mImg = inputFrame.rgba();
+        Imgproc.cvtColor(mImg, hsv, Imgproc.COLOR_RGB2HSV, 3);
+
+
+        Core.inRange(hsv, lowerlowerredhue, upperlowerredhue, mask1);
+        Core.inRange(hsv, lowerupperredhue, upperupperredhue, mask2);
+
+        Core.bitwise_not( mask1, mask1);
+        Core.bitwise_not( mask2, mask2);
+        Core.bitwise_and( mask1, mask2,combinedmask);
+
+        hsv.setTo(new Scalar(0,0,0), combinedmask);
+        Imgproc.cvtColor(hsv, mImg, Imgproc.COLOR_HSV2RGB, 4);
+
+        List<Mat> hsv_channel = new ArrayList<Mat>();
+        Core.split(hsv,hsv_channel);
+        greyscale = hsv_channel.get(2);
+
+        Imgproc.blur(greyscale, greyscale, new Size(7, 7), new Point(2, 2));
+        Imgproc.HoughCircles(greyscale, circles, Imgproc.CV_HOUGH_GRADIENT, 2, 100);
+
+        Log.i("circle count",String.valueOf(circles.size()));
+
+        if (circles.cols() > 0) {
+            double circleVec[] = circles.get(0, 0);
+
+            Point center = new Point((int) circleVec[0], (int) circleVec[1]);
+            double x = (circleVec[0] - mImg.width()/2);
+            int radius = (int) circleVec[2];
+
+            Log.i("radius",String.valueOf(radius));
+
+            //mbot.setDrive(100/radius,100/radius);
+
+            Imgproc.circle(mImg, center, 3, new Scalar(255, 255, 255), 5);
+            Imgproc.circle(mImg, center, radius, new Scalar(255, 255, 255), 2);
+        }else{
+            //mbot.setDrive(0,0);
+        }
+        return mImg;
+    }
+
+
     //*********************************************************************************************
 }
