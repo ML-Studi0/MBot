@@ -51,6 +51,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     Scalar lowerupperredhue = new Scalar(170, 100, 100);
     Scalar upperupperredhue = new Scalar(180, 255, 255);
 
+    CustomFPSCameraView mCamView;
+
     Mat hsv,greyscale,mask1,mask2,combinedmask,circles;
 
     private final static int REQUEST_BLUETOOTH_ENABLE = 1;
@@ -84,13 +86,11 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mbot = new MBot();
 
         // Initialize OpenCV
-        JavaCameraView mCamView = (JavaCameraView)findViewById( R.id.camera_view);
+        mCamView = (CustomFPSCameraView) findViewById( R.id.camera_view);
         mCamView.setCameraIndex(mCamView.CAMERA_ID_ANY);
         mCamView.setCvCameraViewListener(this);
         mCamView.enableView();
-
         OpenCVLoader.initDebug();
-
     }
 
     //-----------------------------------------------------------------
@@ -116,12 +116,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+        mCamView.setPreviewFPS(15);
         hsv = new Mat(height, width, CvType.CV_8UC3);
         mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         mask2 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         combinedmask = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         greyscale = new Mat(height, width, CvType.CV_8U, new Scalar(0));
-        circles = new Mat();
     }
 
     @Override
@@ -131,7 +131,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mask2.release();
         combinedmask.release();
         greyscale.release();
-        circles.release();
     }
 
     @Override
@@ -149,16 +148,15 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         Core.bitwise_and( mask1, mask2,combinedmask);
 
         hsv.setTo(new Scalar(0,0,0), combinedmask);
-        Imgproc.cvtColor(hsv, mImg, Imgproc.COLOR_HSV2RGB, 4);
 
         List<Mat> hsv_channel = new ArrayList<Mat>();
         Core.split(hsv,hsv_channel);
         greyscale = hsv_channel.get(2);
 
+        circles = new Mat();
+
         Imgproc.blur(greyscale, greyscale, new Size(7, 7), new Point(2, 2));
         Imgproc.HoughCircles(greyscale, circles, Imgproc.CV_HOUGH_GRADIENT, 2, 100);
-
-        Log.i("circle count",String.valueOf(circles.size()));
 
         if (circles.cols() > 0) {
             double circleVec[] = circles.get(0, 0);
@@ -176,6 +174,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         }else{
             //mbot.setDrive(0,0);
         }
+
+        circles.release();
+
         return mImg;
     }
 
