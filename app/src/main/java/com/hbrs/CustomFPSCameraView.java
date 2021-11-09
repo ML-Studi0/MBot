@@ -21,7 +21,6 @@ public class CustomFPSCameraView extends JavaCameraView {
         Camera.Parameters params = mCamera.getParameters();
         List<int[]> supportedfps = params.getSupportedPreviewFpsRange();
         int minsupportedfps = supportedfps.get(0)[Camera.Parameters.PREVIEW_FPS_MIN_INDEX];
-        Log.i("minfps",String.valueOf(minsupportedfps));
         if(max * 1000 >= minsupportedfps){
             params.setPreviewFpsRange(minsupportedfps, max*1000);
         }else{

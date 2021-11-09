@@ -55,6 +55,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     Mat hsv,greyscale,mask1,mask2,combinedmask,circles;
 
+    int mindim,framewidth;
+
     private final static int REQUEST_BLUETOOTH_ENABLE = 1;
     private final static int REQUEST_BLUETOOTH_GET_ADDR = 2;
 
@@ -116,6 +118,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public void onCameraViewStarted(int width, int height) {
+        framewidth = width;
+        mindim = Math.min(width, height);
         mCamView.setPreviewFPS(15);
         hsv = new Mat(height, width, CvType.CV_8UC3);
         mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
@@ -162,17 +166,23 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
             double circleVec[] = circles.get(0, 0);
 
             Point center = new Point((int) circleVec[0], (int) circleVec[1]);
-            double x = (circleVec[0] - mImg.width()/2);
+            double x = (circleVec[0]/framewidth);
             int radius = (int) circleVec[2];
 
-            Log.i("radius",String.valueOf(radius));
+            int speed = Math.max(200 - (int) ((((double)radius * 2)/mindim) * 200),0);
 
-            //mbot.setDrive(100/radius,100/radius);
+            int speedleft = (int) (speed * Math.sin(x * Math.PI / 2));
+            int speedright = (int) -(speed * Math.cos(x * Math.PI / 2));
+
+            Log.i("x",String.valueOf(x));
+            Log.i("speed",String.format("speed %d speed left %d speed right %d",speed,speedleft,speedright));
+
+            mbot.setDrive(speedleft,speedright);
 
             Imgproc.circle(mImg, center, 3, new Scalar(255, 255, 255), 5);
             Imgproc.circle(mImg, center, radius, new Scalar(255, 255, 255), 2);
         }else{
-            //mbot.setDrive(0,0);
+            mbot.setDrive(0,0);
         }
 
         circles.release();
