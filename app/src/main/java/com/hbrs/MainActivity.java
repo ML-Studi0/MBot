@@ -11,22 +11,13 @@ package com.hbrs;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.hardware.Camera;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Parcelable;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.view.Surface;
 import android.view.View;
-import android.widget.Button;
-import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.JavaCameraView;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -45,17 +36,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     private MBot mbot;
 
-    Scalar lowerlowerredhue = new Scalar(0, 100, 100);
-    Scalar upperlowerredhue = new Scalar(10, 255, 255);
+    Scalar lowerlowerredhue = new Scalar(0, 150, 100);
+    Scalar upperlowerredhue = new Scalar(5, 255, 255);
 
-    Scalar lowerupperredhue = new Scalar(170, 100, 100);
+    Scalar lowerupperredhue = new Scalar(175, 150, 100);
     Scalar upperupperredhue = new Scalar(180, 255, 255);
 
     CustomFPSCameraView mCamView;
 
     Mat hsv,greyscale,mask1,mask2,combinedmask,circles;
 
-    int mindim,framewidth;
+    int mindim, framewidth;
 
     private final static int REQUEST_BLUETOOTH_ENABLE = 1;
     private final static int REQUEST_BLUETOOTH_GET_ADDR = 2;
@@ -120,7 +111,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public void onCameraViewStarted(int width, int height) {
         framewidth = width;
         mindim = Math.min(width, height);
-        mCamView.setPreviewFPS(15);
+        //mCamView.setPreviewFPS(15);
         hsv = new Mat(height, width, CvType.CV_8UC3);
         mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         mask2 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
@@ -159,35 +150,42 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         circles = new Mat();
 
-        Imgproc.blur(greyscale, greyscale, new Size(7, 7), new Point(2, 2));
-        Imgproc.HoughCircles(greyscale, circles, Imgproc.CV_HOUGH_GRADIENT, 2, 100);
+        Imgproc.blur(greyscale, greyscale, new Size(5, 5));
+        Imgproc.HoughCircles(greyscale, circles, Imgproc.CV_HOUGH_GRADIENT, 2.5, 1,100,50);
+
+        Log.i("circles circlespeed",circles.size().toString());
 
         if (circles.cols() > 0) {
             double circleVec[] = circles.get(0, 0);
 
             Point center = new Point((int) circleVec[0], (int) circleVec[1]);
-            double x = (circleVec[0]/framewidth);
+            double x = (circleVec[0]/ framewidth);
             int radius = (int) circleVec[2];
+            if(x != 0.0) {
 
-            int speed = Math.max(200 - (int) ((((double)radius * 2)/mindim) * 200),0);
+                int speedexponential = (int) Math.max((200 - Math.pow(200,(((double) radius * 2) / mindim))), 0);
+                int speedlinear = Math.max(200 - (int) ((((double) radius * 2) / mindim) * 200), 0);
 
-            int speedleft = (int) (speed * Math.sin(x * Math.PI / 2));
-            int speedright = (int) -(speed * Math.cos(x * Math.PI / 2));
+                int speedleft = (int) (speedexponential * Math.cos(x * Math.PI / 2));
+                int speedright = (int) -(speedexponential * Math.sin(x * Math.PI / 2));
 
-            Log.i("x",String.valueOf(x));
-            Log.i("speed",String.format("speed %d speed left %d speed right %d",speed,speedleft,speedright));
+                Log.i("y axis", String.valueOf(x));
+                Log.i("speed circlespeed", String.format("speed %d speed left %d speed right %d", speedexponential, speedleft, speedright));
 
-            mbot.setDrive(speedleft,speedright);
+                mbot.setDrive(speedleft, speedright);
 
-            Imgproc.circle(mImg, center, 3, new Scalar(255, 255, 255), 5);
-            Imgproc.circle(mImg, center, radius, new Scalar(255, 255, 255), 2);
+                Imgproc.circle(greyscale, center, 3, new Scalar(255, 255, 255), 5);
+                Imgproc.circle(greyscale, center, radius, new Scalar(255, 255, 255), 2);
+            }else{
+                mbot.setDrive(0,0);
+            }
         }else{
             mbot.setDrive(0,0);
         }
 
         circles.release();
 
-        return mImg;
+        return greyscale;
     }
 
 
