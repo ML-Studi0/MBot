@@ -11,6 +11,7 @@ package com.hbrs;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -109,14 +110,16 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public void onCameraViewStarted(int width, int height) {
-        framewidth = width;
-        mindim = Math.min(width, height);
+        Log.i("resolution",String.format("width %d height %d",width,height));
         //mCamView.setPreviewFPS(15);
         hsv = new Mat(height, width, CvType.CV_8UC3);
         mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         mask2 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         combinedmask = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         greyscale = new Mat(height, width, CvType.CV_8U, new Scalar(0));
+        android.util.Size previewframesize = mCamView.setPreviewFrameSize(1920,1080);
+        mindim = Math.min(previewframesize.getWidth(),previewframesize.getHeight());
+        framewidth = previewframesize.getWidth();
     }
 
     @Override
@@ -134,7 +137,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         Mat mImg = inputFrame.rgba();
         Imgproc.cvtColor(mImg, hsv, Imgproc.COLOR_RGB2HSV, 3);
 
-
         Core.inRange(hsv, lowerlowerredhue, upperlowerredhue, mask1);
         Core.inRange(hsv, lowerupperredhue, upperupperredhue, mask2);
 
@@ -144,9 +146,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         hsv.setTo(new Scalar(0,0,0), combinedmask);
 
-        List<Mat> hsv_channel = new ArrayList<Mat>();
-        Core.split(hsv,hsv_channel);
-        greyscale = hsv_channel.get(2);
+        Imgproc.cvtColor(hsv, greyscale, Imgproc.COLOR_BGR2GRAY);
 
         circles = new Mat();
 
@@ -166,16 +166,16 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 int speedexponential = (int) Math.max((200 - Math.pow(200,(((double) radius * 2) / mindim))), 0);
                 int speedlinear = Math.max(200 - (int) ((((double) radius * 2) / mindim) * 200), 0);
 
-                int speedleft = (int) (speedexponential * Math.cos(x * Math.PI / 2));
-                int speedright = (int) -(speedexponential * Math.sin(x * Math.PI / 2));
+                int speedleft = (int) (speedlinear * Math.cos(x * Math.PI / 2));
+                int speedright = (int) -(speedlinear * Math.sin(x * Math.PI / 2));
 
                 Log.i("y axis", String.valueOf(x));
-                Log.i("speed circlespeed", String.format("speed %d speed left %d speed right %d", speedexponential, speedleft, speedright));
+                Log.i("speed circlespeed", String.format("speed %d speed left %d speed right %d", speedlinear, speedleft, speedright));
 
                 mbot.setDrive(speedleft, speedright);
 
-                Imgproc.circle(greyscale, center, 3, new Scalar(255, 255, 255), 5);
-                Imgproc.circle(greyscale, center, radius, new Scalar(255, 255, 255), 2);
+                Imgproc.circle(mImg, center, 3, new Scalar(255, 255, 255), 5);
+                Imgproc.circle(mImg, center, radius, new Scalar(255, 255, 255), 2);
             }else{
                 mbot.setDrive(0,0);
             }
@@ -185,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         circles.release();
 
-        return greyscale;
+        return mImg;
     }
 
 

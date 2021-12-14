@@ -4,6 +4,7 @@ import android.content.Context;
 import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.util.Size;
 
 import org.opencv.android.JavaCameraView;
 
@@ -27,5 +28,19 @@ public class CustomFPSCameraView extends JavaCameraView {
             params.setPreviewFpsRange(minsupportedfps, minsupportedfps);
         }
         mCamera.setParameters(params);
+    }
+    public Size setPreviewFrameSize(int width,int height){
+        Camera.Parameters params = mCamera.getParameters();
+        List<Camera.Size> supportedsize = params.getSupportedPictureSizes();
+        int maxwidth = supportedsize.get(0).width;
+        int maxheight = supportedsize.get(0).height;
+        Log.i("supported",String.format("width %d height %d",maxwidth,maxheight));
+        if(width > maxwidth && height > maxheight){
+            width = maxwidth;
+            height = maxheight;
+        }
+        disconnectCamera();
+        connectCamera(width,height);
+        return new Size(width,height);
     }
 }
