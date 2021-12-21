@@ -129,13 +129,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mask2.release();
         combinedmask.release();
         greyscale.release();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
         mbot.setDrive(0,0);
-        Log.i("pause", "pause");
     }
 
     @Override
