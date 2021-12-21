@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mCamView.setCameraIndex(mCamView.CAMERA_ID_ANY);
         mCamView.setCvCameraViewListener(this);
         mCamView.enableView();
-        OpenCVLoader.initDebug();
+        OpenCVLoader.initDebug(false);
     }
 
     //-----------------------------------------------------------------
@@ -111,15 +111,15 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     public void onCameraViewStarted(int width, int height) {
         Log.i("resolution",String.format("width %d height %d",width,height));
-        //mCamView.setPreviewFPS(15);
         hsv = new Mat(height, width, CvType.CV_8UC3);
         mask1 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         mask2 = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         combinedmask = new Mat(height, width, CvType.CV_8U, new Scalar(0));
         greyscale = new Mat(height, width, CvType.CV_8U, new Scalar(0));
-        android.util.Size previewframesize = mCamView.setPreviewFrameSize(1920,1080);
+        android.util.Size previewframesize = mCamView.setPreviewFrameSize(1280,720);
         mindim = Math.min(previewframesize.getWidth(),previewframesize.getHeight());
         framewidth = previewframesize.getWidth();
+        mCamView.setPreviewFPS(20);
     }
 
     @Override
@@ -129,6 +129,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
         mask2.release();
         combinedmask.release();
         greyscale.release();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mbot.setDrive(0,0);
+        Log.i("pause", "pause");
     }
 
     @Override
