@@ -169,8 +169,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 int speedexponential = (int) Math.max((200 - Math.pow(200,(((double) radius * 2) / mindim))), 0); //an exponential function to handle the robot's speed towards the circle sa it gets closer (not used)
                 int speedlinear = Math.max(200 - (int) ((((double) radius * 2) / mindim) * 200), 0); //a linear function to handle the robot's speed towards the circle sa it gets closer (f(radius) = max(0,200-((radius*2)/mindim))*200)
 
-                int speedleft = (int) (speedlinear * Math.cos(x * Math.PI / 2));
-                int speedright = (int) -(speedlinear * Math.sin(x * Math.PI / 2));
+                //the x coordinate is scaled between 0 and 1/2 pi to calculate the amount of steering with sin and cos
+                //x == 0 means the ball is fully on the right side. x==1/2pi means fully on the left side.
+                int speedleft = (int) (speedlinear * Math.cos(x * Math.PI / 2)); //for the left motor we use cos, because the further the ball is on the right the more we want to turn the left motor.
+                int speedright = (int) -(speedlinear * Math.sin(x * Math.PI / 2)); //for the right motor we use sin, because the further the ball is on the right the less we want to turn the right motor.
 
                 Log.i("y axis", String.valueOf(x));
                 Log.i("speed circlespeed", String.format("speed %d speed left %d speed right %d", speedlinear, speedleft, speedright));
